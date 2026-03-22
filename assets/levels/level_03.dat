@@ -1,0 +1,44 @@
+NAME Verdun Meatgrinder
+SIZE 18 18
+GOLD 500
+LIVES 15
+WAVES 20
+MAP
+bbssbbbb.ss.bbbbbb
+tttttttttttttttttb
+.bbb.ss.bbb.bbbbt.
+.bttttttttttttttt.
+.btbbbb.ss.bbbbb.m
+.btttttttttttttttb
+.bbb.mm.bbb.bbbbt.
+.bttttttttttttttt.
+.btbbbb.ss.bbbbb.m
+.btttttttttttttttb
+.bbb.mm.bbb.bbbbt.
+.bttttttttttttttt.
+.btbbbb.ss.bbbbb.m
+.btttttttttttttttb
+.bbb.ss.bbb.bbbbt.
+.bttttttttttttttt.
+.btbbbb.mm.bbbbbbb
+.btttttttttttttttt
+PATH
+0 1
+16 1
+16 3
+2 3
+2 5
+16 5
+16 7
+2 7
+2 9
+16 9
+16 11
+2 11
+2 13
+16 13
+16 15
+2 15
+2 17
+17 17
+END

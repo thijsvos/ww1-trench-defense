@@ -1,0 +1,92 @@
+NAME Gallipoli Beach
+SIZE 20 16
+GOLD 450
+LIVES 18
+WAVES 20
+MAP
+ww....ssssss....wwww
+bbbbbbbbbb..........
+tttttttttb..........
+..bb..bbtb..........
+..bb..bbtttttttttttt
+..bb..bbbbbbbbbbb.bb
+..m..........m......
+bbbbbbb..ss..bbbbbbb
+tttttttttttttttttttt
+bbbbbbb..ss..bbbbbbb
+..m..........m......
+..bb..bbtttttttttttt
+..bb..bbtb..........
+tttttttttb..........
+bbbbbbbbbb..........
+ww....ssssss....wwww
+PATH
+0 2
+1 2
+2 2
+3 2
+4 2
+5 2
+6 2
+7 2
+8 2
+8 3
+8 4
+9 4
+10 4
+11 4
+12 4
+13 4
+14 4
+15 4
+16 4
+17 4
+18 4
+19 4
+END
+PATH
+0 8
+1 8
+2 8
+3 8
+4 8
+5 8
+6 8
+7 8
+8 8
+9 8
+10 8
+11 8
+12 8
+13 8
+14 8
+15 8
+16 8
+17 8
+18 8
+19 8
+END
+PATH
+0 13
+1 13
+2 13
+3 13
+4 13
+5 13
+6 13
+7 13
+8 13
+8 12
+8 11
+9 11
+10 11
+11 11
+12 11
+13 11
+14 11
+15 11
+16 11
+17 11
+18 11
+19 11
+END
