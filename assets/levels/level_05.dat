@@ -1,0 +1,42 @@
+NAME The Kaiserschlacht
+SIZE 24 20
+GOLD 600
+LIVES 12
+WAVES 20
+MAP
+wwwwwwtmmssssmm..twwwwww
+ww.bbbt..........tbbb.ww
+.bbbbbt..........tbbbb..
+.bbbbbt..........tbbbb..
+tttttttttttttttttttttttt
+.bbbbbt..........tbbbb..
+..bbbbt..........tbbbb..
+...m.bt....ss....tb.m...
+...m.bt....ss....tb.m...
+..bbbbt..mm..mm..tbbbb..
+..bbbbt..mm..mm..tbbbb..
+...m.bt....ss....tb.m...
+...m.bt....ss....tb.m...
+..bbbbt..........tbbbb..
+.bbbbbt..........tbbbb..
+tttttttttttttttttttttttt
+.bbbbbt..........tbbbb..
+.bbbbbt..........tbbbb..
+ww.bbbt..........tbbb.ww
+wwwwwwtmmssssmm..twwwwww
+PATH
+0 4
+23 4
+END
+PATH
+0 15
+23 15
+END
+PATH
+6 0
+6 19
+END
+PATH
+17 0
+17 19
+END

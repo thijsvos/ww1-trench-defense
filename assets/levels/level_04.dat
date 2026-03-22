@@ -1,0 +1,40 @@
+NAME Brusilov's Breakthrough
+SIZE 22 18
+GOLD 550
+LIVES 16
+WAVES 20
+MAP
+..mm..ssssssssss..mm..
+.bbbbbbbbbbbbbbbbbbbbb
+tttttttttttttttttttttt
+.bbbbbbbbbbbbbbbbbbbbb
+..mm..........mm......
+.bbbbbbb..ss..bbbbbbb.
+tttttttttttttttttttttt
+.bbbbbbb..ss..bbbbbbb.
+..mm..........mm......
+..........ss..........
+..mm..........mm......
+.bbbbbbb..ss..bbbbbbb.
+tttttttttttttttttttttt
+.bbbbbbb..ss..bbbbbbb.
+..mm..........mm......
+.bbbbbbbbbbbbbbbbbbbbb
+tttttttttttttttttttttt
+.bbbbbbbbbbbbbbbbbbbbb
+PATH
+0 2
+21 2
+END
+PATH
+0 6
+21 6
+END
+PATH
+0 12
+21 12
+END
+PATH
+0 16
+21 16
+END
