@@ -1,0 +1,161 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake libglfw3-dev libgl-dev
+
+      - name: Build
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build
+
+      - name: Package
+        run: |
+          mkdir -p release
+          cp build/ww1td release/
+          cp -r build/assets release/
+          cp LICENSE README.md release/
+          cd release && tar czf ../ww1td-linux-x64.tar.gz *
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-build
+          path: ww1td-linux-x64.tar.gz
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: brew install cmake glfw
+
+      - name: Build
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build
+
+      - name: Package
+        run: |
+          mkdir -p release
+          cp build/ww1td release/
+          cp -r build/assets release/
+          cp LICENSE README.md release/
+          cd release && zip -r ../ww1td-macos-arm64.zip *
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-build
+          path: ww1td-macos-arm64.zip
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install GLFW via vcpkg
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git C:\vcpkg
+          C:\vcpkg\bootstrap-vcpkg.bat
+          C:\vcpkg\vcpkg install glfw3:x64-windows
+
+      - name: Build
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake
+          cmake --build build --config Release
+
+      - name: Package
+        shell: bash
+        run: |
+          mkdir -p release
+          cp build/Release/ww1td.exe release/ 2>/dev/null || cp build/ww1td.exe release/
+          cp -r build/assets release/ 2>/dev/null || cp -r assets release/
+          cp LICENSE README.md release/
+          cd release && 7z a ../ww1td-windows-x64.zip *
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-build
+          path: ww1td-windows-x64.zip
+
+  release:
+    needs: [build-linux, build-macos, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # Get previous tag
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+
+          if [ -z "$PREV_TAG" ]; then
+            echo "First release — generating full changelog"
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" HEAD)
+          else
+            echo "Generating changelog since $PREV_TAG"
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" ${PREV_TAG}..HEAD)
+          fi
+
+          # Write to file (handles multiline)
+          echo "$CHANGELOG" > changelog.txt
+
+          # Count stats
+          COMMITS=$(echo "$CHANGELOG" | wc -l)
+          FILES=$(git diff --stat ${PREV_TAG:-$(git rev-list --max-parents=0 HEAD)} HEAD | tail -1 || echo "unknown")
+
+          cat > release_body.md << BODY_EOF
+          ## What's Changed
+
+          $CHANGELOG
+
+          ## Stats
+          - **Commits**: $COMMITS
+          - **Changes**: $FILES
+
+          ## Downloads
+
+          | Platform | File |
+          |----------|------|
+          | Linux x64 | \`ww1td-linux-x64.tar.gz\` |
+          | macOS ARM64 | \`ww1td-macos-arm64.zip\` |
+          | Windows x64 | \`ww1td-windows-x64.zip\` |
+
+          ## How to Run
+
+          Extract the archive and run \`ww1td\` (or \`ww1td.exe\` on Windows).
+          Make sure the \`assets/\` folder is in the same directory as the executable.
+          BODY_EOF
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create ${{ github.ref_name }} \
+            --title "WW1: Trench Defense ${{ github.ref_name }}" \
+            --notes-file release_body.md \
+            artifacts/linux-build/ww1td-linux-x64.tar.gz \
+            artifacts/macos-build/ww1td-macos-arm64.zip \
+            artifacts/windows-build/ww1td-windows-x64.zip
