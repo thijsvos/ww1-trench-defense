@@ -1040,7 +1040,7 @@ void game_render(GameState *gs, UIContext *ui) {
             yy += 30.0f;
         }
 
-        /* Upgrade button */
+        /* Upgrade button — always present, greyed out when maxed */
         if (t->upgrade_level < 2) {
             int up_cost = def->upgrade_cost[t->upgrade_level + 1];
             char up_label[32];
@@ -1057,8 +1057,18 @@ void game_render(GameState *gs, UIContext *ui) {
                     LOG_INFO("Tower upgraded to level %d", t->upgrade_level + 1);
                 }
             }
-            yy += 34.0f;
+        } else {
+            /* Max level — show greyed out button that does nothing */
+            ui_draw_rect(ui, px + 8.0f, yy, pw - 16.0f, 28.0f,
+                         vec4(0.15f, 0.14f, 0.12f, 1.0f));
+            float max_scale = 2.0f;
+            const char *max_txt = "MAX LEVEL";
+            float max_w = (float)strlen(max_txt) * 6.0f * max_scale;
+            ui_label(ui, px + 8.0f + (pw - 16.0f - max_w) / 2.0f,
+                     yy + (28.0f - 7.0f * max_scale) / 2.0f,
+                     max_txt, vec4(0.35f, 0.35f, 0.35f, 1.0f), max_scale);
         }
+        yy += 34.0f;
 
         /* Sell button */
         int sell_val = economy_sell_value(t->total_invested);
@@ -1076,20 +1086,153 @@ void game_render(GameState *gs, UIContext *ui) {
         }
     }
 
-    /* "Press SPACE" prompt when between waves */
+    /* "Press SPACE" prompt + Wave Intel panel when between waves */
     if (!gs->game_over && !gs->waves.wave_active &&
         gs->enemies.count == 0 && !wave_all_complete(&gs->waves)) {
+
+        /* Determine which wave is next */
+        int next_wave = gs->waves.current_wave + 1;
+        if (next_wave < 0) next_wave = 0;
+
+        /* Prompt text */
         const char *prompt = gs->waves.current_wave < 0
             ? "Press [SPACE] to start"
             : "Press [SPACE] for next wave";
-        float scale = 2.5f;
-        float pw = (float)strlen(prompt) * 6.0f * scale;
-        float px = (sw - pw) / 2.0f;
-        float py = sh * 0.4f;
-        /* Pulsing alpha for attention */
+        float prompt_scale = 2.5f;
+        float prompt_w = (float)strlen(prompt) * 6.0f * prompt_scale;
+        float prompt_y = sh * 0.28f;
         float pulse = 0.55f + 0.35f * sinf((float)glfwGetTime() * 3.0f);
-        Vec4 prompt_col = vec4(1.0f, 0.9f, 0.5f, pulse);
-        ui_label(ui, px, py, prompt, prompt_col, scale);
+        ui_label(ui, (sw - prompt_w) / 2.0f, prompt_y, prompt,
+                 vec4(1.0f, 0.9f, 0.5f, pulse), prompt_scale);
+
+        /* === Wave Intel Panel === */
+        if (next_wave < gs->waves.wave_count) {
+            WaveDef *wd = &gs->waves.waves[next_wave];
+
+            /* Aggregate enemy counts by type */
+            int type_counts[ENEMY_TYPE_COUNT] = {0};
+            for (int g = 0; g < wd->group_count; g++)
+                type_counts[wd->groups[g].type] += wd->groups[g].count;
+
+            /* Count how many distinct types appear */
+            int num_types = 0;
+            for (int t = 0; t < ENEMY_TYPE_COUNT; t++)
+                if (type_counts[t] > 0) num_types++;
+
+            /* Panel dimensions */
+            float panel_w = 340.0f;
+            float line_h = 18.0f;
+            float panel_h = 36.0f + (float)num_types * (line_h + 12.0f) + 24.0f;
+            float panel_x = (sw - panel_w) / 2.0f;
+            float panel_y = prompt_y + 35.0f;
+
+            /* Panel background */
+            ui_panel(ui, panel_x, panel_y, panel_w, panel_h,
+                     vec4(0.06f, 0.05f, 0.04f, 0.85f));
+
+            /* Header */
+            {
+                char header[48];
+                snprintf(header, sizeof(header), "WAVE %d INTEL", next_wave + 1);
+                float hdr_scale = 2.0f;
+                float hdr_w = (float)strlen(header) * 6.0f * hdr_scale;
+                ui_label(ui, panel_x + (panel_w - hdr_w) / 2.0f, panel_y + 8.0f,
+                         header, vec4(0.85f, 0.75f, 0.45f, 1.0f), hdr_scale);
+            }
+
+            /* Decorative line */
+            ui_draw_rect(ui, panel_x + 15.0f, panel_y + 30.0f,
+                         panel_w - 30.0f, 1.0f,
+                         vec4(0.4f, 0.35f, 0.25f, 0.5f));
+
+            /* Tower name mapping for counter tips */
+            static const char *dmg_tower_names[DAMAGE_TYPE_COUNT] = {
+                "MG", "Sniper", "Mortar", "Artillery", "Gas", "Flame"
+            };
+
+            /* Special ability descriptions */
+            static const char *special_notes[ENEMY_TYPE_COUNT] = {
+                NULL,                  /* Infantry */
+                "Fast",                /* Cavalry */
+                "25%% evasion",        /* Stormtrooper */
+                "Heavy armor",         /* Tank */
+                "Heals allies",        /* Medic */
+                "Buffs speed",         /* Officer */
+                "Burrows",             /* Sapper */
+                "Medium armor",        /* Armored Car */
+            };
+
+            /* Name colors per enemy type */
+            static const Vec4 type_colors[ENEMY_TYPE_COUNT] = {
+                { .x=0.76f, .y=0.69f, .z=0.57f, .w=1.0f }, /* Infantry - khaki */
+                { .x=0.65f, .y=0.55f, .z=0.40f, .w=1.0f }, /* Cavalry - brown */
+                { .x=0.50f, .y=0.60f, .z=0.45f, .w=1.0f }, /* Stormtrooper - olive */
+                { .x=0.60f, .y=0.62f, .z=0.65f, .w=1.0f }, /* Tank - steel */
+                { .x=0.40f, .y=0.85f, .z=0.40f, .w=1.0f }, /* Medic - green */
+                { .x=0.90f, .y=0.75f, .z=0.25f, .w=1.0f }, /* Officer - gold */
+                { .x=0.60f, .y=0.45f, .z=0.30f, .w=1.0f }, /* Sapper - earth */
+                { .x=0.55f, .y=0.57f, .z=0.55f, .w=1.0f }, /* Armored Car - gray */
+            };
+
+            float yy = panel_y + 38.0f;
+            float lbl_scale = 1.3f;
+            float cpx = 6.0f * lbl_scale; /* char pixel width */
+
+            for (int t = 0; t < ENEMY_TYPE_COUNT; t++) {
+                if (type_counts[t] == 0) continue;
+
+                const EnemyDef *edef = enemy_get_def((EnemyType)t);
+                float lx = panel_x + 12.0f;
+
+                /* Enemy name */
+                ui_label(ui, lx, yy, edef->name, type_colors[t], lbl_scale);
+                lx += 14.0f * cpx;
+
+                /* Count */
+                char cnt[12];
+                snprintf(cnt, sizeof(cnt), "x%d", type_counts[t]);
+                ui_label(ui, lx, yy, cnt, vec4(0.8f, 0.8f, 0.8f, 1.0f), lbl_scale);
+                lx += 5.0f * cpx;
+
+                /* Find strong counters (damage mult > 1.0) and weaknesses (< 0.5) */
+                char counters[64] = "";
+                int ci = 0;
+                for (int d = 0; d < DAMAGE_TYPE_COUNT; d++) {
+                    float mult = enemy_get_armor_multiplier(d, edef->armor);
+                    if (mult >= 1.2f) {
+                        if (ci > 0) { counters[ci++] = ','; counters[ci++] = ' '; }
+                        int len = (int)strlen(dmg_tower_names[d]);
+                        for (int c = 0; c < len && ci < 60; c++)
+                            counters[ci++] = dmg_tower_names[d][c];
+                    }
+                }
+                counters[ci] = '\0';
+
+                if (ci > 0) {
+                    ui_label(ui, lx, yy, counters,
+                             vec4(0.4f, 0.8f, 0.4f, 0.9f), lbl_scale);
+                }
+
+                /* Special note on second line */
+                if (special_notes[t]) {
+                    yy += line_h - 2.0f;
+                    ui_label(ui, panel_x + 12.0f + 2.0f * cpx, yy,
+                             special_notes[t],
+                             vec4(0.7f, 0.6f, 0.4f, 0.7f), 1.1f);
+                }
+
+                yy += line_h + 2.0f;
+            }
+
+            /* Wave bonus */
+            {
+                char bonus[32];
+                snprintf(bonus, sizeof(bonus), "Wave bonus: +%dg", wd->bonus_gold);
+                float bw = (float)strlen(bonus) * cpx;
+                ui_label(ui, panel_x + (panel_w - bw) / 2.0f, yy + 4.0f,
+                         bonus, vec4(1.0f, 0.85f, 0.3f, 0.8f), lbl_scale);
+            }
+        }
     }
 
     /* Game over overlay */
