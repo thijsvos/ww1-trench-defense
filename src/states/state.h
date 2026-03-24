@@ -14,6 +14,7 @@ typedef enum StateID {
     STATE_PLAY,
     STATE_PAUSE,
     STATE_GAME_OVER,
+    STATE_CAMPAIGN_VICTORY,
 } StateID;
 
 typedef struct State {
@@ -30,7 +31,7 @@ typedef struct StateManager {
     void *ctx;          /* state-specific context */
     bool should_pop;    /* return to previous state */
 
-    State states[8];
+    State states[9];
     StateID prev_state; /* for returning from pause/gameover */
 } StateManager;
 
