@@ -56,6 +56,7 @@ set(SOURCES
     src/states/state_menu.c
     src/states/state_difficulty.c
     src/states/state_levelselect.c
+    src/states/state_briefing.c
     src/states/state_play.c
     src/states/state_pause.c
     src/states/state_gameover.c
