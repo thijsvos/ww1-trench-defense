@@ -34,8 +34,8 @@ static uint32_t ls_id(const char *tag, int extra) {
 
 static void levelselect_enter(void *ctx) {
     AppContext *app = (AppContext *)ctx;
-    for (int i = 0; i < MAX_LEVELS; i++)
-        app->unlocked[i] = true;
+    /* Level 1 always unlocked, rest must be earned */
+    if (!app->unlocked[0]) app->unlocked[0] = true;
     app->selected_level = -1;
     LOG_INFO("Entered level select");
 }
@@ -88,7 +88,7 @@ static void levelselect_render(void *ctx, Engine *engine, UIContext *ui) {
                 snprintf(app->level_path, sizeof(app->level_path),
                          "%s", LEVEL_PATHS[i]);
                 app->game_initialized = false; /* force fresh load */
-                state_set(app->sm, STATE_PLAY, app);
+                state_set(app->sm, STATE_BRIEFING, app);
                 LOG_INFO("Selected level %d: %s", i + 1, LEVEL_NAMES[i]);
             }
         }
