@@ -6,6 +6,7 @@
 #include "states/state_menu.h"
 #include "states/state_difficulty.h"
 #include "states/state_levelselect.h"
+#include "states/state_briefing.h"
 #include "states/state_play.h"
 #include "states/state_pause.h"
 #include "states/state_gameover.h"
@@ -40,6 +41,7 @@ int main(void)
     sm.states[STATE_MENU]         = state_menu_create();
     sm.states[STATE_DIFFICULTY]   = state_difficulty_create();
     sm.states[STATE_LEVEL_SELECT] = state_levelselect_create();
+    sm.states[STATE_BRIEFING]     = state_briefing_create();
     sm.states[STATE_PLAY]         = state_play_create();
     sm.states[STATE_PAUSE]        = state_pause_create();
     sm.states[STATE_GAME_OVER]    = state_gameover_create();

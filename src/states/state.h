@@ -10,6 +10,7 @@ typedef enum StateID {
     STATE_MENU,
     STATE_DIFFICULTY,
     STATE_LEVEL_SELECT,
+    STATE_BRIEFING,
     STATE_PLAY,
     STATE_PAUSE,
     STATE_GAME_OVER,
@@ -29,7 +30,7 @@ typedef struct StateManager {
     void *ctx;          /* state-specific context */
     bool should_pop;    /* return to previous state */
 
-    State states[7];
+    State states[8];
     StateID prev_state; /* for returning from pause/gameover */
 } StateManager;
 
