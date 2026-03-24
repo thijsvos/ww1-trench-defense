@@ -51,7 +51,7 @@ int main(void)
     memset(&app, 0, sizeof(app));
     app.sm = &sm;
     app.selected_level = -1;
-    app.unlocked[0] = true;
+    for (int i = 0; i < MAX_LEVELS; i++) app.unlocked[i] = true;
 
     /* Start at main menu */
     state_set(&sm, STATE_MENU, &app);
