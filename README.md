@@ -4,7 +4,14 @@ A World War 1 themed tower defense game built from scratch in C with a custom Op
 
 ## Screenshots
 
-*Coming soon*
+![Main menu with animated No Man's Land battlefield](assets/images/1.png)
+*The main menu, featuring a Red Baron flyby over a war-torn horizon with searchlights and distant explosions.*
+
+![Mission briefing for the Verdun Meatgrinder level](assets/images/2.png)
+*Historical mission briefings present real WW1 context, casualty figures, and national flags before each battle.*
+
+![Isometric gameplay with trench network and wave intel](assets/images/3.png)
+*In-game view of the trench defense grid with tower placement bar and wave intel showing incoming enemy composition.*
 
 ## Features
 
