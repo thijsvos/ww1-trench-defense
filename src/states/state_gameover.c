@@ -39,6 +39,11 @@ static void gameover_enter(void *ctx) {
     LOG_INFO("Game over: %s (kills: %d, score: %d)",
              app->go_victory ? "VICTORY" : "DEFEAT",
              app->go_total_kills, app->go_score);
+
+    /* Final level victory → campaign ending screen */
+    if (app->go_victory && app->selected_level == MAX_LEVELS - 1) {
+        state_set(app->sm, STATE_CAMPAIGN_VICTORY, app);
+    }
 }
 
 static void gameover_exit(void *ctx) { (void)ctx; }
