@@ -247,11 +247,52 @@ static void draw_flag(UIContext *ui, float x, float y, float w, float h, int fla
         ui_draw_rect(ui, x + w * 0.42f, y, w * 0.16f, h, vec4(0.8f, 0.1f, 0.1f, 1.0f));
         ui_draw_rect(ui, x, y + h * 0.40f, w, h * 0.2f, vec4(0.8f, 0.1f, 0.1f, 1.0f));
         break;
-    case FLAG_OTTOMAN: /* Red background with white crescent (simplified) */
+    case FLAG_OTTOMAN: /* Red background with white crescent and star */
         ui_draw_rect(ui, x, y, w, h, vec4(0.9f, 0.1f, 0.1f, 1.0f));
-        ui_draw_rect(ui, x + w * 0.35f, y + h * 0.25f, w * 0.1f, h * 0.5f, vec4(1.0f, 1.0f, 1.0f, 1.0f));
-        ui_draw_rect(ui, x + w * 0.5f, y + h * 0.35f, w * 0.15f, h * 0.1f, vec4(1.0f, 1.0f, 1.0f, 1.0f));
-        ui_draw_rect(ui, x + w * 0.5f, y + h * 0.55f, w * 0.15f, h * 0.1f, vec4(1.0f, 1.0f, 1.0f, 1.0f));
+        {
+            Vec4 white = vec4(1.0f, 1.0f, 1.0f, 1.0f);
+            float cx = x + w * 0.38f;
+            float cy = y + h * 0.5f;
+            float r_outer = h * 0.38f;
+            float r_inner = h * 0.28f;
+            float off_x = w * 0.06f; /* inner circle offset to form crescent */
+            float ps = (h > 16.0f) ? 2.0f : 1.0f; /* pixel size */
+            /* Draw white outer circle, cut out red inner circle = crescent */
+            for (float py = -r_outer; py <= r_outer; py += ps) {
+                for (float px = -r_outer; px <= r_outer; px += ps) {
+                    float d_outer = px * px + py * py;
+                    if (d_outer <= r_outer * r_outer) {
+                        float dx_i = px - off_x;
+                        float d_inner = dx_i * dx_i + py * py;
+                        if (d_inner > r_inner * r_inner) {
+                            ui_draw_rect(ui, cx + px, cy + py, ps, ps, white);
+                        }
+                    }
+                }
+            }
+            /* Five-pointed star to the right of crescent */
+            float sx = x + w * 0.58f;
+            float sy = cy;
+            float sr = h * 0.12f;
+            for (int p = 0; p < 5; p++) {
+                float a1 = -1.5708f + (float)p * 1.2566f;       /* outer point */
+                float a2 = -1.5708f + ((float)p + 0.5f) * 1.2566f; /* inner point */
+                float ox = sx + cosf(a1) * sr;
+                float oy = sy + sinf(a1) * sr;
+                float ix = sx + cosf(a2) * sr * 0.4f;
+                float iy = sy + sinf(a2) * sr * 0.4f;
+                /* Draw line from center to outer point */
+                for (float t = 0.0f; t <= 1.0f; t += 0.08f) {
+                    ui_draw_rect(ui, sx + (ox - sx) * t, sy + (oy - sy) * t,
+                                 ps, ps, white);
+                }
+                /* Draw line from outer point to next inner point */
+                for (float t = 0.0f; t <= 1.0f; t += 0.08f) {
+                    ui_draw_rect(ui, ox + (ix - ox) * t, oy + (iy - oy) * t,
+                                 ps, ps, white);
+                }
+            }
+        }
         break;
     case FLAG_RUSSIA: /* White / Blue / Red (horizontal, Imperial) */
         ui_draw_rect(ui, x, y, w, h3, vec4(1.0f, 1.0f, 1.0f, 1.0f));
@@ -263,16 +304,81 @@ static void draw_flag(UIContext *ui, float x, float y, float w, float h, int fla
         ui_draw_rect(ui, x, y + h3, w, h3, vec4(1.0f, 1.0f, 1.0f, 1.0f));
         ui_draw_rect(ui, x, y + h3 * 2, w, h3, vec4(0.93f, 0.16f, 0.22f, 1.0f));
         break;
-    case FLAG_ANZAC: /* Simplified — blue bg with white stars (Southern Cross) */
+    case FLAG_ANZAC: /* Australian flag — blue bg, Union Jack canton, Southern Cross */
         ui_draw_rect(ui, x, y, w, h, vec4(0.0f, 0.14f, 0.40f, 1.0f));
-        /* Union Jack in corner (tiny) */
-        ui_draw_rect(ui, x, y, w * 0.4f, h * 0.4f, vec4(0.0f, 0.10f, 0.35f, 1.0f));
-        ui_draw_rect(ui, x + w * 0.15f, y, w * 0.1f, h * 0.4f, vec4(0.8f, 0.1f, 0.1f, 1.0f));
-        ui_draw_rect(ui, x, y + h * 0.15f, w * 0.4f, h * 0.1f, vec4(0.8f, 0.1f, 0.1f, 1.0f));
-        /* Stars */
-        ui_draw_rect(ui, x + w * 0.6f, y + h * 0.3f, 2.0f, 2.0f, vec4(1.0f, 1.0f, 1.0f, 1.0f));
-        ui_draw_rect(ui, x + w * 0.75f, y + h * 0.5f, 2.0f, 2.0f, vec4(1.0f, 1.0f, 1.0f, 1.0f));
-        ui_draw_rect(ui, x + w * 0.65f, y + h * 0.7f, 2.0f, 2.0f, vec4(1.0f, 1.0f, 1.0f, 1.0f));
+        {
+            Vec4 wht = vec4(1.0f, 1.0f, 1.0f, 1.0f);
+            Vec4 red = vec4(0.8f, 0.1f, 0.1f, 1.0f);
+            float cw = w * 0.45f, ch = h * 0.5f; /* canton size */
+            float ps = (h > 20.0f) ? 2.0f : 1.0f;
+            /* Union Jack canton background */
+            ui_draw_rect(ui, x, y, cw, ch, vec4(0.0f, 0.12f, 0.38f, 1.0f));
+            /* White diagonals */
+            { int steps = (int)cw;
+              for (int s = 0; s < steps; s++) {
+                float t = (float)s / (float)steps;
+                ui_draw_rect(ui, x + t * cw, y + t * ch, ps, ps, wht);
+                ui_draw_rect(ui, x + (1.0f - t) * cw - ps, y + t * ch, ps, ps, wht);
+              }
+            }
+            /* White cross */
+            ui_draw_rect(ui, x + cw * 0.38f, y, cw * 0.24f, ch, wht);
+            ui_draw_rect(ui, x, y + ch * 0.35f, cw, ch * 0.3f, wht);
+            /* Red diagonals (thinner, on top) */
+            { int steps = (int)cw;
+              for (int s = 0; s < steps; s++) {
+                float t = (float)s / (float)steps;
+                ui_draw_rect(ui, x + t * cw + ps * 0.5f, y + t * ch + ps * 0.5f,
+                             1.0f, 1.0f, red);
+                ui_draw_rect(ui, x + (1.0f - t) * cw - ps * 0.5f - 1.0f,
+                             y + t * ch + ps * 0.5f, 1.0f, 1.0f, red);
+              }
+            }
+            /* Red cross (on top of white) */
+            ui_draw_rect(ui, x + cw * 0.42f, y, cw * 0.16f, ch, red);
+            ui_draw_rect(ui, x, y + ch * 0.40f, cw, ch * 0.2f, red);
+            /* Commonwealth Star (7-pointed, below canton) */
+            {
+                float csx = x + cw * 0.5f;
+                float csy = y + h * 0.75f;
+                float sr = h * 0.14f;
+                for (int p = 0; p < 7; p++) {
+                    float a = -1.5708f + (float)p * (6.2832f / 7.0f);
+                    float ox = csx + cosf(a) * sr;
+                    float oy = csy + sinf(a) * sr;
+                    for (float t = 0.0f; t <= 1.0f; t += 0.06f) {
+                        ui_draw_rect(ui, csx + (ox - csx) * t,
+                                     csy + (oy - csy) * t, ps, ps, wht);
+                    }
+                }
+            }
+            /* Southern Cross — 4 large stars + 1 small star on right half */
+            {
+                float star_sz = h * 0.06f; /* large star radius */
+                float sm_sz = h * 0.04f;   /* small star radius */
+                /* Approximate Southern Cross positions */
+                struct { float fx, fy; float r; } sc[5] = {
+                    { 0.77f, 0.25f, star_sz }, /* Alpha (top) */
+                    { 0.90f, 0.45f, star_sz }, /* Beta (right) */
+                    { 0.82f, 0.75f, star_sz }, /* Gamma (bottom-right) */
+                    { 0.65f, 0.60f, star_sz }, /* Delta (left) */
+                    { 0.80f, 0.50f, sm_sz   }, /* Epsilon (center, small) */
+                };
+                for (int s = 0; s < 5; s++) {
+                    float ssx = x + w * sc[s].fx;
+                    float ssy = y + h * sc[s].fy;
+                    float sr = sc[s].r;
+                    /* Draw as a small + shape */
+                    ui_draw_rect(ui, ssx - sr, ssy - ps * 0.5f, sr * 2.0f, ps, wht);
+                    ui_draw_rect(ui, ssx - ps * 0.5f, ssy - sr, ps, sr * 2.0f, wht);
+                    /* Diagonal arms */
+                    ui_draw_rect(ui, ssx - sr * 0.7f, ssy - sr * 0.7f, ps, ps, wht);
+                    ui_draw_rect(ui, ssx + sr * 0.7f - ps, ssy - sr * 0.7f, ps, ps, wht);
+                    ui_draw_rect(ui, ssx - sr * 0.7f, ssy + sr * 0.7f - ps, ps, ps, wht);
+                    ui_draw_rect(ui, ssx + sr * 0.7f - ps, ssy + sr * 0.7f - ps, ps, ps, wht);
+                }
+            }
+        }
         break;
     }
 
@@ -376,47 +482,47 @@ static void briefing_render(void *ctx, Engine *engine, UIContext *ui) {
                  vec4(0.35f, 0.28f, 0.18f, 0.5f));
     text_y += 8.0f;
 
-    /* === Flags — left side vs right side === */
+    /* === Flags, VS, and stats — all aligned on center line (sw/2) === */
     {
-        float flag_w = 36.0f, flag_h = 22.0f;
+        float half = sw * 0.5f;
+        float flag_w = 52.0f, flag_h = 32.0f;
         float flag_gap = 6.0f;
-        float vs_scale = 1.8f;
-        float vs_w = 2.0f * 6.0f * vs_scale; /* "VS" = 2 chars */
+        float margin = 24.0f; /* gap between flags and center line */
+        Vec4 div_col = vec4(0.40f, 0.32f, 0.20f, 0.6f);
 
-        /* Center the whole flags + VS group */
+        /* Left flags (right-aligned to center) */
         float left_total = (float)b->left_flag_count * (flag_w + flag_gap) - flag_gap;
-        float right_total = (float)b->right_flag_count * (flag_w + flag_gap) - flag_gap;
-        float group_w = left_total + 30.0f + vs_w + 30.0f + right_total;
-        float gx = (sw - group_w) / 2.0f;
-
-        /* Left flags (defenders) */
+        float lx = half - margin - left_total;
         for (int f = 0; f < b->left_flag_count; f++) {
-            draw_flag(ui, gx + (float)f * (flag_w + flag_gap), text_y, flag_w, flag_h,
+            draw_flag(ui, lx + (float)f * (flag_w + flag_gap), text_y, flag_w, flag_h,
                       b->left_flags[f]);
         }
 
-        /* "VS" text */
-        float vs_x = gx + left_total + 30.0f;
-        ui_label(ui, vs_x, text_y + 2.0f, "VS",
-                 vec4(0.60f, 0.50f, 0.35f, 1.0f), vs_scale);
-
-        /* Right flags (attackers) */
-        float rx = vs_x + vs_w + 30.0f;
+        /* Right flags (left-aligned from center) */
+        float rx = half + margin;
         for (int f = 0; f < b->right_flag_count; f++) {
             draw_flag(ui, rx + (float)f * (flag_w + flag_gap), text_y, flag_w, flag_h,
                       b->right_flags[f]);
         }
 
-        text_y += flag_h + 12.0f;
-    }
+        /* "VS" text centered on the divider line */
+        float vs_scale = 1.8f;
+        float vs_w = 2.0f * 6.0f * vs_scale;
+        float vs_h = 5.0f * vs_scale; /* font is 5px tall */
+        ui_label(ui, half - vs_w * 0.5f, text_y + (flag_h - vs_h) * 0.5f, "VS",
+                 vec4(0.60f, 0.50f, 0.35f, 1.0f), vs_scale);
 
-    /* === Side-by-side casualty stats with divider === */
-    {
+        text_y += flag_h + 12.0f;
+
+        /* === Side-by-side casualty stats === */
         float stat_scale = 1.7f;
         float cpx = 6.0f * stat_scale;
-        float half = sw * 0.5f;
         int max_lines = b->left_stat_count > b->right_stat_count
                       ? b->left_stat_count : b->right_stat_count;
+
+        /* Vertical divider — extends from flags through stats */
+        float div_h = (float)max_lines * 22.0f;
+        ui_draw_rect(ui, half - 1.0f, text_y - 2.0f, 2.0f, div_h + 4.0f, div_col);
 
         /* Left side stats (right-aligned to center) */
         for (int i = 0; i < b->left_stat_count; i++) {
@@ -424,11 +530,6 @@ static void briefing_render(void *ctx, Engine *engine, UIContext *ui) {
             ui_label(ui, half - tw - 20.0f, text_y + (float)i * 22.0f,
                      b->left_stats[i], vec4(0.70f, 0.65f, 0.55f, 1.0f), stat_scale);
         }
-
-        /* Vertical divider line */
-        float div_h = (float)max_lines * 22.0f;
-        ui_draw_rect(ui, half - 1.0f, text_y - 2.0f, 2.0f, div_h + 4.0f,
-                     vec4(0.40f, 0.32f, 0.20f, 0.6f));
 
         /* Right side stats (left-aligned from center) */
         for (int i = 0; i < b->right_stat_count; i++) {
