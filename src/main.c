@@ -10,6 +10,7 @@
 #include "states/state_play.h"
 #include "states/state_pause.h"
 #include "states/state_gameover.h"
+#include "states/state_victory.h"
 
 #include <string.h>
 
@@ -45,6 +46,7 @@ int main(void)
     sm.states[STATE_PLAY]         = state_play_create();
     sm.states[STATE_PAUSE]        = state_pause_create();
     sm.states[STATE_GAME_OVER]    = state_gameover_create();
+    sm.states[STATE_CAMPAIGN_VICTORY] = state_victory_create();
 
     /* Unified application context */
     static AppContext app;

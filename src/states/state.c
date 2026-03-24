@@ -13,7 +13,7 @@ void state_manager_init(StateManager *sm) {
 }
 
 void state_set(StateManager *sm, StateID id, void *ctx) {
-    if (id == STATE_NONE || id > STATE_GAME_OVER) {
+    if (id == STATE_NONE || id > STATE_CAMPAIGN_VICTORY) {
         LOG_WARN("state_set: invalid state id %d", id);
         return;
     }

@@ -60,6 +60,7 @@ set(SOURCES
     src/states/state_play.c
     src/states/state_pause.c
     src/states/state_gameover.c
+    src/states/state_victory.c
 )
 
 add_executable(ww1td ${SOURCES})
