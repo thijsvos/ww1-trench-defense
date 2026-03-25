@@ -1,5 +1,8 @@
 # WW1: Trench Defense
 
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+![Build](https://github.com/thijsvos/ww1-trench-defense/actions/workflows/build.yml/badge.svg)
+
 A World War 1 themed tower defense game built from scratch in C with a custom OpenGL 3.3 engine. No game frameworks, no external art, no external audio — everything is procedurally generated.
 
 ## Screenshots
