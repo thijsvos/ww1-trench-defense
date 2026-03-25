@@ -84,6 +84,7 @@ static void levelselect_render(void *ctx, Engine *engine, UIContext *ui) {
         if (ui_button(ui, ls_id("level", i), btn_x, by, btn_w, btn_h,
                       label, bg, text_col)) {
             if (unlocked) {
+                audio_play(&app->audio, SFX_UI_CLICK);
                 app->selected_level = i;
                 snprintf(app->level_path, sizeof(app->level_path),
                          "%s", LEVEL_PATHS[i]);
@@ -97,6 +98,7 @@ static void levelselect_render(void *ctx, Engine *engine, UIContext *ui) {
     float back_y = start_y + (float)MAX_LEVELS * (btn_h + 12.0f) + 20.0f;
     if (ui_button(ui, ls_id("back", 0), btn_x, back_y, btn_w, btn_h,
                   "BACK", vec4(0.35f, 0.18f, 0.15f, 1.0f), btn_text)) {
+        audio_play(&app->audio, SFX_UI_CLICK);
         state_set(app->sm, STATE_DIFFICULTY, app);
     }
 }

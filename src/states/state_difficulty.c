@@ -151,12 +151,14 @@ static void diff_render(void *ctx, Engine *engine, UIContext *ui) {
 
     if (ui_button(ui, diff_id("continue", 0), btn_x, btn_y, btn_w, btn_h,
                   "CONTINUE", vec4(0.28f, 0.32f, 0.22f, 1.0f), btn_text)) {
+        audio_play(&app->audio, SFX_UI_CLICK);
         state_set(app->sm, STATE_LEVEL_SELECT, app);
     }
 
     btn_y += btn_h + 12.0f;
     if (ui_button(ui, diff_id("back", 0), btn_x, btn_y, btn_w, btn_h,
                   "BACK", vec4(0.35f, 0.18f, 0.15f, 1.0f), btn_text)) {
+        audio_play(&app->audio, SFX_UI_CLICK);
         state_set(app->sm, STATE_MENU, app);
     }
 }

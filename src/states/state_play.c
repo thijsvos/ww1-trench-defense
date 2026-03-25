@@ -14,7 +14,9 @@ static void play_enter(void *ctx) {
             LOG_ERROR("Failed to init game: %s", app->level_path);
             return;
         }
+        app->game.audio = &app->audio;
         app->game_initialized = true;
+        audio_set_ambient(&app->audio, AMBIENT_BATTLEFIELD);
         LOG_INFO("Play state entered: %s", app->level_path);
     } else {
         app->needs_clock_reset = true;

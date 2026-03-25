@@ -15,6 +15,20 @@ target_include_directories(glad PUBLIC extern/glad/include)
 add_library(stb STATIC src/stb_impl.c)
 target_include_directories(stb PUBLIC extern/stb)
 
+# ── miniaudio (header-only, compiled in one TU) ─────────────────
+add_library(miniaudio STATIC src/miniaudio_impl.c)
+target_include_directories(miniaudio PUBLIC extern/miniaudio)
+if(APPLE)
+    target_link_libraries(miniaudio PRIVATE
+        "-framework AudioToolbox"
+        "-framework CoreAudio"
+        "-framework CoreFoundation"
+    )
+endif()
+if(UNIX AND NOT APPLE)
+    target_link_libraries(miniaudio PRIVATE dl m pthread)
+endif()
+
 # ── Main executable ───────────────────────────────────────────────
 set(SOURCES
     src/main.c
@@ -48,6 +62,10 @@ set(SOURCES
     src/game/projectile.c
     src/game/particles.c
     src/game/game.c
+    # audio
+    src/audio/audio.c
+    src/audio/synth.c
+    src/audio/sound_defs.c
     # ui
     src/ui/ui.c
     src/ui/ui_widgets.c
@@ -68,9 +86,10 @@ add_executable(ww1td ${SOURCES})
 target_include_directories(ww1td PRIVATE
     ${CMAKE_SOURCE_DIR}/extern/glad/include
     ${CMAKE_SOURCE_DIR}/extern/stb
+    ${CMAKE_SOURCE_DIR}/extern/miniaudio
 )
 
-target_link_libraries(ww1td PRIVATE glad stb glfw)
+target_link_libraries(ww1td PRIVATE glad stb miniaudio glfw)
 
 # macOS frameworks
 if(APPLE)

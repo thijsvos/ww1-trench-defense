@@ -11,6 +11,7 @@
 #include "states/state_pause.h"
 #include "states/state_gameover.h"
 #include "states/state_victory.h"
+#include "audio/audio.h"
 
 #include <string.h>
 
@@ -55,6 +56,10 @@ int main(void)
     app.selected_level = -1;
     for (int i = 0; i < MAX_LEVELS; i++) app.unlocked[i] = true;
 
+    /* Audio */
+    if (!audio_init(&app.audio))
+        LOG_WARN("Audio init failed — continuing without sound");
+
     /* Start at main menu */
     state_set(&sm, STATE_MENU, &app);
 
@@ -66,6 +71,9 @@ int main(void)
                  (float)engine.input.mouse_x, (float)engine.input.mouse_y,
                  input_mouse_down(&engine.input, 0),
                  input_mouse_pressed(&engine.input, 0));
+
+        /* Update audio (cooldowns, ambient fades) */
+        audio_update(&app.audio, (float)engine.clock.dt);
 
         /* Update + render current state */
         state_update(&sm, &engine, &ui);
@@ -79,6 +87,7 @@ int main(void)
     }
 
     /* Cleanup */
+    audio_shutdown(&app.audio);
     if (app.game_initialized)
         game_shutdown(&app.game);
     ui_destroy(&ui);

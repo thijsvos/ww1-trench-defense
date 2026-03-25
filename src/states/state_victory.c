@@ -294,6 +294,8 @@ static void victory_render(void *ctx, Engine *engine, UIContext *ui) {
                           "RETURN TO MENU",
                           vec4(0.25f * a, 0.20f * a, 0.12f * a, a),
                           vec4(1.0f * a, 1.0f * a, 1.0f * a, a))) {
+                audio_play(&app->audio, SFX_UI_CLICK);
+                audio_stop_ambient(&app->audio);
                 game_shutdown(&app->game);
                 app->game_initialized = false;
                 state_set(app->sm, STATE_MENU, app);

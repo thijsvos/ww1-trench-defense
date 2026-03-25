@@ -338,12 +338,14 @@ static void menu_render(void *ctx, Engine *engine, UIContext *ui) {
 
     if (ui_button(ui, menu_id("play"), btn_x, btn_y, btn_w, btn_h,
                   "PLAY", vec4(0.28f, 0.25f, 0.18f, 1.0f), btn_text)) {
+        audio_play(&app->audio, SFX_UI_CLICK);
         state_set(app->sm, STATE_DIFFICULTY, app);
     }
 
     btn_y += btn_h + 16.0f;
     if (ui_button(ui, menu_id("quit"), btn_x, btn_y, btn_w, btn_h,
                   "QUIT", vec4(0.35f, 0.12f, 0.10f, 1.0f), btn_text)) {
+        audio_play(&app->audio, SFX_UI_CLICK);
         engine->running = false;
     }
 
