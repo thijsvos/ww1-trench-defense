@@ -15,11 +15,55 @@
 
 #include <string.h>
 
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#include <libgen.h>
+#endif
+
 #define WINDOW_WIDTH  1280
 #define WINDOW_HEIGHT 720
 
-int main(void)
+/* Set the working directory to the executable's directory so that
+ * relative asset paths (assets/shaders/, assets/levels/) resolve
+ * correctly regardless of where the program is launched from. */
+static void set_exe_dir(const char *argv0)
 {
+#ifdef _WIN32
+    char path[MAX_PATH];
+    GetModuleFileNameA(NULL, path, MAX_PATH);
+    /* Strip the executable name to get the directory */
+    char *last_sep = strrchr(path, '\\');
+    if (last_sep) *last_sep = '\0';
+    SetCurrentDirectoryA(path);
+#elif defined(__APPLE__)
+    /* On macOS, use _NSGetExecutablePath or just dirname(argv0) */
+    char buf[1024];
+    strncpy(buf, argv0, sizeof(buf) - 1);
+    buf[sizeof(buf) - 1] = '\0';
+    chdir(dirname(buf));
+#else
+    /* Linux: read /proc/self/exe */
+    char buf[1024];
+    ssize_t len = readlink("/proc/self/exe", buf, sizeof(buf) - 1);
+    if (len > 0) {
+        buf[len] = '\0';
+        chdir(dirname(buf));
+    } else {
+        /* Fallback to argv[0] */
+        char arg[1024];
+        strncpy(arg, argv0, sizeof(arg) - 1);
+        arg[sizeof(arg) - 1] = '\0';
+        chdir(dirname(arg));
+    }
+#endif
+}
+
+int main(int argc, char *argv[])
+{
+    (void)argc;
+    set_exe_dir(argv[0]);
     Engine engine;
     if (!engine_init(&engine, WINDOW_WIDTH, WINDOW_HEIGHT, "WW1: Trench Defense"))
         return 1;

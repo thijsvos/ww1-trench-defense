@@ -84,7 +84,7 @@ jobs:
         run: |
           mkdir -p release
           cp build/Release/ww1td.exe release/ 2>/dev/null || cp build/ww1td.exe release/
-          cp -r build/assets release/ 2>/dev/null || cp -r assets release/
+          cp -r build/Release/assets release/ 2>/dev/null || cp -r build/assets release/ 2>/dev/null || cp -r assets release/
           cp LICENSE README.md release/
           cd release && 7z a ../ww1td-windows-x64.zip *
 
