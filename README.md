@@ -1,6 +1,6 @@
 # WW1: Trench Defense
 
-A World War 1 themed tower defense game built from scratch in C with a custom OpenGL 3.3 engine. No game frameworks, no external art — everything is procedurally generated.
+A World War 1 themed tower defense game built from scratch in C with a custom OpenGL 3.3 engine. No game frameworks, no external art, no external audio — everything is procedurally generated.
 
 ## Screenshots
 
@@ -22,6 +22,8 @@ A World War 1 themed tower defense game built from scratch in C with a custom Op
 - **Strategic Combat**: Medics heal allies, Officers buff speed, tower targeting priority (First/Last/Strong/Weak/Near)
 - **Authentic WW1 Visuals**: War-torn terrain, mortar arc trajectories, flamethrower streams, gas clouds, observation balloon with sway animation
 - **Procedural Pixel Art**: All sprites generated at startup from code — no image files needed
+- **Procedural Audio**: 21 sound effects and 2 ambient loops synthesized from parameters at startup — no audio files needed
+- **WW1 Soundscape**: Trench whistle wave signals, weapon-specific fire sounds, distant battlefield rumble, no-man's-land wind
 - **Full Game Loop**: Main menu → Difficulty → Level Select → Gameplay → Pause → Victory/Defeat
 
 ## Building
@@ -70,7 +72,7 @@ cmake --build build --config Release
 | **Space** | Start next wave |
 | **Tab** | Toggle auto-wave |
 | **F** | Cycle speed (1x/2x/5x) |
-| **Escape** | Pause |
+| **Escape** | Toggle pause menu |
 | **F2** | Debug overlay |
 
 ## Architecture
@@ -81,6 +83,7 @@ src/
 ├── math/       Custom linear algebra (vec2/3/4, mat4, isometric helpers)
 ├── render/     OpenGL rendering (sprite batch, camera, shaders, procedural atlas)
 ├── game/       All game logic (towers, enemies, waves, projectiles, economy)
+├── audio/      Procedural audio (synthesis engine, sound definitions, mixer)
 ├── ui/         Immediate-mode UI with built-in pixel font
 └── states/     Game state machine (menu, difficulty, level select, play, pause)
 ```
@@ -96,6 +99,7 @@ Dependencies flow downward: `game/` → `render/` → `core/` → `math/`. Never
 | Windowing | GLFW |
 | GL Loader | GLAD (generated) |
 | Image Loading | stb_image |
+| Audio | miniaudio (header-only) |
 | Build | CMake |
 | Math | Custom |
 | Memory | Arena allocators |
