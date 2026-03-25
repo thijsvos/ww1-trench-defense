@@ -64,6 +64,9 @@ static void set_exe_dir(const char *argv0)
 static void fatal_error(const char *msg)
 {
 #ifdef _WIN32
+    /* Also write to log file before showing MessageBox */
+    fprintf(stderr, "FATAL: %s\n", msg);
+    fflush(stderr);
     MessageBoxA(NULL, msg, "WW1: Trench Defense - Error", MB_OK | MB_ICONERROR);
 #else
     fprintf(stderr, "FATAL: %s\n", msg);
@@ -73,13 +76,32 @@ static void fatal_error(const char *msg)
 int main(int argc, char *argv[])
 {
     (void)argc;
+
+#ifdef _WIN32
+    /* Redirect stderr to %TEMP%\ww1td.log FIRST — %TEMP% is always writable.
+     * This must happen before anything else so we capture all errors. */
+    {
+        char logpath[MAX_PATH];
+        GetTempPathA(MAX_PATH, logpath);
+        strncat(logpath, "ww1td.log", MAX_PATH - strlen(logpath) - 1);
+        freopen(logpath, "w", stderr);
+        fprintf(stderr, "[STARTUP] Log opened at: %s\n", logpath);
+        fflush(stderr);
+    }
+#endif
+
     set_exe_dir(argv[0]);
 
 #ifdef _WIN32
-    /* Redirect stderr to a log file next to the exe for debugging */
-    freopen("ww1td.log", "w", stderr);
+    {
+        char cwd[MAX_PATH];
+        GetCurrentDirectoryA(MAX_PATH, cwd);
+        fprintf(stderr, "[STARTUP] Working directory: %s\n", cwd);
+        fflush(stderr);
+    }
 #endif
 
+    fprintf(stderr, "[STARTUP] Initializing engine...\n"); fflush(stderr);
     Engine engine;
     if (!engine_init(&engine, WINDOW_WIDTH, WINDOW_HEIGHT, "WW1: Trench Defense")) {
         fatal_error("Failed to initialize engine (OpenGL 3.3 required).\n\n"
@@ -87,22 +109,25 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    fprintf(stderr, "[STARTUP] Initializing renderer...\n"); fflush(stderr);
     Renderer renderer;
     if (!renderer_init(&renderer)) {
         fatal_error("Failed to initialize renderer.\n\n"
-                    "Check ww1td.log for details.");
+                    "Check %%TEMP%%\\ww1td.log for details.");
         engine_shutdown(&engine);
         return 1;
     }
 
+    fprintf(stderr, "[STARTUP] Initializing UI...\n"); fflush(stderr);
     UIContext ui;
     if (!ui_init(&ui)) {
         fatal_error("Failed to initialize UI.\n\n"
-                    "Check ww1td.log for details.");
+                    "Check %%TEMP%%\\ww1td.log for details.");
         renderer_shutdown(&renderer);
         engine_shutdown(&engine);
         return 1;
     }
+    fprintf(stderr, "[STARTUP] All systems initialized OK\n"); fflush(stderr);
 
     /* State machine */
     StateManager sm;
