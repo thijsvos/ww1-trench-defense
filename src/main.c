@@ -60,22 +60,45 @@ static void set_exe_dir(const char *argv0)
 #endif
 }
 
+/* Show a fatal error to the user (MessageBox on Windows, stderr elsewhere) */
+static void fatal_error(const char *msg)
+{
+#ifdef _WIN32
+    MessageBoxA(NULL, msg, "WW1: Trench Defense - Error", MB_OK | MB_ICONERROR);
+#else
+    fprintf(stderr, "FATAL: %s\n", msg);
+#endif
+}
+
 int main(int argc, char *argv[])
 {
     (void)argc;
     set_exe_dir(argv[0]);
+
+#ifdef _WIN32
+    /* Redirect stderr to a log file next to the exe for debugging */
+    freopen("ww1td.log", "w", stderr);
+#endif
+
     Engine engine;
-    if (!engine_init(&engine, WINDOW_WIDTH, WINDOW_HEIGHT, "WW1: Trench Defense"))
+    if (!engine_init(&engine, WINDOW_WIDTH, WINDOW_HEIGHT, "WW1: Trench Defense")) {
+        fatal_error("Failed to initialize engine (OpenGL 3.3 required).\n\n"
+                    "Make sure your graphics drivers are up to date.");
         return 1;
+    }
 
     Renderer renderer;
     if (!renderer_init(&renderer)) {
+        fatal_error("Failed to initialize renderer.\n\n"
+                    "Check ww1td.log for details.");
         engine_shutdown(&engine);
         return 1;
     }
 
     UIContext ui;
     if (!ui_init(&ui)) {
+        fatal_error("Failed to initialize UI.\n\n"
+                    "Check ww1td.log for details.");
         renderer_shutdown(&renderer);
         engine_shutdown(&engine);
         return 1;
