@@ -4,6 +4,7 @@
 #include "state.h"
 #include "state_levelselect.h"
 #include "../game/game.h"
+#include "../audio/audio.h"
 
 #include <stdbool.h>
 
@@ -26,6 +27,9 @@ typedef struct AppContext {
     char level_path[APP_MAX_LEVEL_PATH];
     bool game_initialized;
     bool needs_clock_reset;  /* reset accumulator on first update after resume */
+
+    /* Audio */
+    AudioSystem audio;
 
     /* Game over */
     bool go_victory;

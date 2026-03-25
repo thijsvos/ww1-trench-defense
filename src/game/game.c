@@ -20,6 +20,11 @@
 #define PAN_SPEED  5.0f
 #define ZOOM_SPEED 0.1f
 
+/* Helper: camera center as Vec2 for audio distance attenuation */
+static inline Vec2 listener_pos(GameState *gs) {
+    return vec2(gs->camera.position.x, gs->camera.position.z);
+}
+
 /* ------------------------------------------------------------------ */
 
 
@@ -203,6 +208,7 @@ void game_update(GameState *gs, Input *input, GameClock *clock) {
                                                     gs->hover_tile.y);
                         if (tower) {
                             economy_spend(&gs->economy, def->cost);
+                            audio_play(gs->audio, SFX_TOWER_PLACE);
                             Tile *t = map_get_tile(&gs->map,
                                                     gs->hover_tile.x,
                                                     gs->hover_tile.y);
@@ -233,6 +239,7 @@ void game_update(GameState *gs, Input *input, GameClock *clock) {
                 if (tile) tile->occupied = false;
                 tower_remove(&gs->towers, gs->selected_tower_index);
                 gs->selected_tower_index = -1;
+                audio_play(gs->audio, SFX_TOWER_SELL);
                 LOG_INFO("Tower sold for %d gold", sell_gold);
             }
         }
@@ -245,6 +252,7 @@ void game_update(GameState *gs, Input *input, GameClock *clock) {
             if (ready) {
                 wave_start_next(&gs->waves);
                 gs->wave_cleared = false;
+                audio_play(gs->audio, SFX_WAVE_START);
                 LOG_INFO("Wave %d started", gs->waves.current_wave + 1);
             }
         }
@@ -290,9 +298,11 @@ void game_update(GameState *gs, Input *input, GameClock *clock) {
             int leaked = enemy_update(&gs->enemies, &gs->paths, dt);
             if (leaked > 0) {
                 economy_lose_lives(&gs->economy, leaked);
+                audio_play(gs->audio, SFX_ENEMY_ESCAPE);
                 if (economy_is_defeated(&gs->economy)) {
                     gs->game_over = true;
                     gs->victory = false;
+                    audio_play(gs->audio, SFX_DEFEAT);
                     LOG_INFO("DEFEAT - Trench line breached!");
                 }
             }
@@ -312,6 +322,8 @@ void game_update(GameState *gs, Input *input, GameClock *clock) {
                             /* Flamethrower: no projectile — direct cone AoE damage + flame stream */
                             particle_spawn_flame_stream(&gs->particles,
                                 tower->position, target->position);
+                            audio_play_at(gs->audio, SFX_FIRE_FLAMETHROWER,
+                                tower->position, listener_pos(gs));
 
                             /* Damage all enemies in splash radius around target */
                             for (int j = 0; j < gs->enemies.count; j++) {
@@ -330,6 +342,8 @@ void game_update(GameState *gs, Input *input, GameClock *clock) {
                             /* Gas dispenser: no projectile — spreads gas cloud at target area */
                             particle_spawn_gas_cloud(&gs->particles,
                                 target->position, tower->splash_radius);
+                            audio_play_at(gs->audio, SFX_FIRE_GAS,
+                                tower->position, listener_pos(gs));
 
                             /* Damage + apply gas DoT to all enemies in splash radius */
                             for (int j = 0; j < gs->enemies.count; j++) {
@@ -354,8 +368,23 @@ void game_update(GameState *gs, Input *input, GameClock *clock) {
                                 tower->damage,
                                 tower->damage_type,
                                 tower->splash_radius);
-                            /* Muzzle flash */
+                            /* Muzzle flash + fire sound */
                             particle_spawn_muzzle_flash(&gs->particles, tower->position);
+                            {
+                                static const SoundID tower_fire_sfx[] = {
+                                    [TOWER_MACHINE_GUN]  = SFX_FIRE_MACHINE_GUN,
+                                    [TOWER_MORTAR]       = SFX_FIRE_MORTAR,
+                                    [TOWER_SNIPER]       = SFX_FIRE_SNIPER,
+                                    [TOWER_BARBED_WIRE]  = SFX_FIRE_MACHINE_GUN, /* shouldn't fire */
+                                    [TOWER_ARTILLERY]    = SFX_FIRE_ARTILLERY,
+                                    [TOWER_GAS]          = SFX_FIRE_GAS,
+                                    [TOWER_FLAMETHROWER] = SFX_FIRE_FLAMETHROWER,
+                                    [TOWER_OBSERVATION]  = SFX_FIRE_MACHINE_GUN, /* shouldn't fire */
+                                };
+                                audio_play_at(gs->audio,
+                                    tower_fire_sfx[tower->type],
+                                    tower->position, listener_pos(gs));
+                            }
                         }
                     }
                 }
@@ -381,6 +410,8 @@ void game_update(GameState *gs, Input *input, GameClock *clock) {
             for (int ai = 0; ai < arc_impact_count; ai++) {
                 particle_spawn_explosion(&gs->particles, arc_impacts[ai], 0.6f);
                 particle_spawn_smoke(&gs->particles, arc_impacts[ai], 6);
+                audio_play_at(gs->audio, SFX_EXPLOSION_SMALL,
+                    arc_impacts[ai], listener_pos(gs));
             }
             if (gold_earned > 0)
                 economy_earn(&gs->economy, gold_earned);
@@ -393,6 +424,8 @@ void game_update(GameState *gs, Input *input, GameClock *clock) {
                     Enemy *dead = &gs->enemies.enemies[i];
                     particle_spawn_explosion(&gs->particles, dead->position, 0.3f);
                     particle_spawn_blood(&gs->particles, dead->position);
+                    audio_play_at(gs->audio, SFX_ENEMY_DEATH,
+                        dead->position, listener_pos(gs));
                 }
             }
 
@@ -405,6 +438,7 @@ void game_update(GameState *gs, Input *input, GameClock *clock) {
                 gs->wave_cleared = true;
                 WaveDef *wd = &gs->waves.waves[gs->waves.current_wave];
                 economy_earn(&gs->economy, wd->bonus_gold);
+                audio_play(gs->audio, SFX_WAVE_COMPLETE);
                 LOG_INFO("Wave %d complete! +%d gold (Total: %d)",
                          gs->waves.current_wave + 1, wd->bonus_gold,
                          gs->economy.gold);
@@ -412,10 +446,12 @@ void game_update(GameState *gs, Input *input, GameClock *clock) {
                 if (wave_all_complete(&gs->waves)) {
                     gs->game_over = true;
                     gs->victory = true;
+                    audio_play(gs->audio, SFX_VICTORY);
                     LOG_INFO("VICTORY! Score: %d", gs->economy.score);
                 } else if (gs->auto_waves) {
                     wave_start_next(&gs->waves);
                     gs->wave_cleared = false;
+                    audio_play(gs->audio, SFX_WAVE_START);
                     LOG_INFO("Wave %d auto-started", gs->waves.current_wave + 1);
                 }
             }
@@ -1054,6 +1090,7 @@ void game_render(GameState *gs, UIContext *ui) {
                 if (economy_can_afford(&gs->economy, up_cost)) {
                     economy_spend(&gs->economy, up_cost);
                     tower_upgrade(t);
+                    audio_play(gs->audio, SFX_TOWER_UPGRADE);
                     LOG_INFO("Tower upgraded to level %d", t->upgrade_level + 1);
                 }
             }

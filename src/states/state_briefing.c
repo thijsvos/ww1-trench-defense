@@ -578,6 +578,7 @@ static void briefing_render(void *ctx, Engine *engine, UIContext *ui) {
                   "BEGIN MISSION",
                   vec4(0.30f, 0.25f, 0.15f, 1.0f),
                   vec4(1.0f, 1.0f, 1.0f, 1.0f))) {
+        audio_play(&app->audio, SFX_UI_CLICK);
         state_set(app->sm, STATE_PLAY, app);
     }
 }

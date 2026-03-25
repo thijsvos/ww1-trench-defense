@@ -18,6 +18,7 @@
 #include "../core/input.h"
 #include "../core/td_time.h"
 #include "../ui/ui.h"
+#include "../audio/audio.h"
 
 typedef enum Difficulty {
     DIFF_RECRUIT = 0,      /* "Fresh Recruit" — easy */
@@ -53,6 +54,7 @@ typedef struct GameState {
     float fps;          /* updated from clock each frame */
     int game_speed;     /* 1 = normal, 2 = fast forward */
     Difficulty difficulty;
+    AudioSystem *audio;    /* points to AppContext.audio, persists across games */
 } GameState;
 
 bool game_init(GameState *gs, const char *level_path, int screen_w, int screen_h, Difficulty diff);
