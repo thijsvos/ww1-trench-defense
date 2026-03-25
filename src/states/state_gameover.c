@@ -127,6 +127,8 @@ static void gameover_render(void *ctx, Engine *engine, UIContext *ui) {
             if (ui_button(ui, go_id("next"), bx, btn_y, btn_w, btn_h,
                           "NEXT",
                           vec4(0.25f, 0.40f, 0.25f, 1.0f), btn_text)) {
+                audio_play(&app->audio, SFX_UI_CLICK);
+                audio_stop_ambient(&app->audio);
                 game_shutdown(&app->game);
                 app->game_initialized = false;
                 app->selected_level++;
@@ -147,6 +149,7 @@ static void gameover_render(void *ctx, Engine *engine, UIContext *ui) {
 
         if (ui_button(ui, go_id("retry"), bx, btn_y, btn_w, btn_h,
                       "RETRY", vec4(0.30f, 0.28f, 0.20f, 1.0f), btn_text)) {
+            audio_play(&app->audio, SFX_UI_CLICK);
             game_shutdown(&app->game);
             app->game_initialized = false;
             state_set(app->sm, STATE_PLAY, app);
@@ -155,6 +158,8 @@ static void gameover_render(void *ctx, Engine *engine, UIContext *ui) {
 
         if (ui_button(ui, go_id("menu"), bx, btn_y, btn_w, btn_h,
                       "MENU", vec4(0.40f, 0.18f, 0.15f, 1.0f), btn_text)) {
+            audio_play(&app->audio, SFX_UI_CLICK);
+            audio_stop_ambient(&app->audio);
             game_shutdown(&app->game);
             app->game_initialized = false;
             state_set(app->sm, STATE_MENU, app);
@@ -167,6 +172,7 @@ static void gameover_render(void *ctx, Engine *engine, UIContext *ui) {
         float retry_x = px + (panel_w / 2.0f - btn_w) / 2.0f;
         if (ui_button(ui, go_id("retry"), retry_x, btn_y, btn_w, btn_h,
                       "RETRY", vec4(0.25f, 0.35f, 0.25f, 1.0f), btn_text)) {
+            audio_play(&app->audio, SFX_UI_CLICK);
             game_shutdown(&app->game);
             app->game_initialized = false;
             state_set(app->sm, STATE_PLAY, app);
@@ -175,6 +181,8 @@ static void gameover_render(void *ctx, Engine *engine, UIContext *ui) {
         float menu_x = px + panel_w / 2.0f + (panel_w / 2.0f - btn_w) / 2.0f;
         if (ui_button(ui, go_id("menu"), menu_x, btn_y, btn_w, btn_h,
                       "MENU", vec4(0.40f, 0.18f, 0.15f, 1.0f), btn_text)) {
+            audio_play(&app->audio, SFX_UI_CLICK);
+            audio_stop_ambient(&app->audio);
             game_shutdown(&app->game);
             app->game_initialized = false;
             state_set(app->sm, STATE_MENU, app);
