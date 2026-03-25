@@ -117,6 +117,10 @@ if(MSVC)
     set_property(TARGET glad PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
     set_property(TARGET stb PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
     set_property(TARGET miniaudio PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    # Increase stack size — GameState contains large embedded arrays
+    # (SpriteBatch: ~590KB, UIContext: ~780KB, particles, enemies, etc.)
+    # MSVC default is 1MB which overflows; 8MB matches typical Unix defaults
+    target_link_options(ww1td PRIVATE /STACK:8388608)
 else()
     target_compile_options(ww1td PRIVATE -Wall -Wextra -Wpedantic)
 endif()
