@@ -109,7 +109,11 @@ if(UNIX AND NOT APPLE)
 endif()
 
 # Warnings
-target_compile_options(ww1td PRIVATE -Wall -Wextra -Wpedantic)
+if(MSVC)
+    target_compile_options(ww1td PRIVATE /W4)
+else()
+    target_compile_options(ww1td PRIVATE -Wall -Wextra -Wpedantic)
+endif()
 
 # Copy assets to build directory
 add_custom_command(TARGET ww1td POST_BUILD
