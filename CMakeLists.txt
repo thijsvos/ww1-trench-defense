@@ -111,6 +111,12 @@ endif()
 # Warnings
 if(MSVC)
     target_compile_options(ww1td PRIVATE /W4)
+    # Statically link the C runtime so the exe runs without
+    # VC++ Redistributable installed (no vcruntime140.dll dependency)
+    set_property(TARGET ww1td PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    set_property(TARGET glad PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    set_property(TARGET stb PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    set_property(TARGET miniaudio PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 else()
     target_compile_options(ww1td PRIVATE -Wall -Wextra -Wpedantic)
 endif()
