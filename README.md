@@ -22,7 +22,7 @@ A World War 1 themed tower defense game built from scratch in C with a custom Op
 - **8 Enemy Types**: Infantry, Cavalry, Stormtrooper, Mark IV Tank, Medic, Officer, Tunnel Sapper, Armored Car
 - **5 Levels**: No Man's Land, Gallipoli Beach, Verdun Meatgrinder, Brusilov's Breakthrough, The Kaiserschlacht
 - **4 Difficulty Modes**: Fresh Recruit, Regular Tommy, Trench Veteran, Kaiserschlacht
-- **Strategic Combat**: Medics heal allies, Officers buff speed, tower targeting priority (First/Last/Strong/Weak/Near)
+- **Strategic Combat**: Medics heal allies, Officers buff speed, tower targeting priority (First/Last/Strong/Weak/Near), artillery barrage call-in ability
 - **Authentic WW1 Visuals**: War-torn terrain, mortar arc trajectories, flamethrower streams, gas clouds, observation balloon with sway animation
 - **Procedural Pixel Art**: All sprites generated at startup from code — no image files needed
 - **Procedural Audio**: 21 sound effects and 2 ambient loops synthesized from parameters at startup — no audio files needed
@@ -75,6 +75,7 @@ cmake --build build --config Release
 | **Space** | Start next wave |
 | **Tab** | Toggle auto-wave |
 | **F** | Cycle speed (1x/2x/5x) |
+| **B** | Call artillery barrage (click to target) |
 | **Escape** | Toggle pause menu |
 | **F2** | Debug overlay |
 

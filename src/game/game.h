@@ -28,6 +28,24 @@ typedef enum Difficulty {
     DIFF_COUNT
 } Difficulty;
 
+/* Artillery barrage call-in ability */
+#define BARRAGE_COOLDOWN_BASE   30.0f
+#define BARRAGE_SHELLS          6
+#define BARRAGE_SHELL_DELAY     0.25f
+#define BARRAGE_RADIUS          2.5f
+#define BARRAGE_DAMAGE          150.0f
+#define BARRAGE_SPLASH          2.0f
+
+typedef struct Barrage {
+    float cooldown;         /* seconds remaining until ready */
+    float cooldown_max;     /* total cooldown for current difficulty */
+    bool  targeting;        /* player is choosing where to drop */
+    Vec2  target;           /* world position of strike */
+    bool  active;           /* strike in progress */
+    float strike_timer;     /* time into the strike sequence */
+    int   shells_dropped;   /* how many shells have landed so far */
+} Barrage;
+
 typedef struct GameState {
     Map map;
     PathSet paths;
@@ -42,6 +60,7 @@ typedef struct GameState {
     DebugDraw debug_draw;
     GameAtlas atlas;
     LevelDef level_def;
+    Barrage barrage;
 
     TowerType selected_tower;
     IVec2 hover_tile;

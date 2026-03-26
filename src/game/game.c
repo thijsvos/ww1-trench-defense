@@ -127,6 +127,13 @@ bool game_init(GameState *gs, const char *level_path, int screen_w, int screen_h
     gs->debug_overlay = false;
     gs->game_speed = 1;
 
+    /* Barrage ability — cooldown scales with difficulty */
+    {
+        static const float DIFF_BARRAGE_CD[DIFF_COUNT] = { 25.0f, 30.0f, 40.0f, 50.0f };
+        gs->barrage.cooldown_max = DIFF_BARRAGE_CD[diff];
+        gs->barrage.cooldown = 0.0f; /* ready immediately at start */
+    }
+
     /* Debug draw */
     debug_draw_init(&gs->debug_draw, &gs->batch);
 
@@ -270,6 +277,37 @@ void game_update(GameState *gs, Input *input, GameClock *clock) {
             else gs->game_speed = 1;
             LOG_INFO("Game speed: %dx", gs->game_speed);
         }
+
+        /* B: artillery barrage ability */
+        if (input_key_pressed(input, GLFW_KEY_B)) {
+            if (gs->barrage.targeting) {
+                /* Cancel targeting */
+                gs->barrage.targeting = false;
+            } else if (gs->barrage.cooldown <= 0.0f && !gs->barrage.active) {
+                gs->barrage.targeting = true;
+                gs->selected_tower = -1;
+                gs->selected_tower_index = -1;
+                audio_play(gs->audio, SFX_UI_CLICK);
+            }
+        }
+
+        /* Barrage targeting: left-click to confirm, right-click to cancel */
+        if (gs->barrage.targeting) {
+            if (input_mouse_pressed(input, GLFW_MOUSE_BUTTON_LEFT)) {
+                Vec3 world = camera_screen_to_world(&gs->camera,
+                    (float)input->mouse_x, (float)input->mouse_y);
+                gs->barrage.target = vec2(world.x, world.z);
+                gs->barrage.targeting = false;
+                gs->barrage.active = true;
+                gs->barrage.strike_timer = 0.0f;
+                gs->barrage.shells_dropped = 0;
+                audio_play(gs->audio, SFX_WAVE_START); /* whistle to signal incoming */
+                LOG_INFO("Artillery barrage called at (%.1f, %.1f)", world.x, world.z);
+            }
+            if (input_mouse_pressed(input, GLFW_MOUSE_BUTTON_RIGHT)) {
+                gs->barrage.targeting = false;
+            }
+        }
     }
 
     /* ---- Fixed-timestep simulation ---- */
@@ -412,6 +450,7 @@ void game_update(GameState *gs, Input *input, GameClock *clock) {
                 particle_spawn_smoke(&gs->particles, arc_impacts[ai], 6);
                 audio_play_at(gs->audio, SFX_EXPLOSION_SMALL,
                     arc_impacts[ai], listener_pos(gs));
+                camera_shake(&gs->camera, 1.5f, 0.2f);
             }
             if (gold_earned > 0)
                 economy_earn(&gs->economy, gold_earned);
@@ -431,6 +470,62 @@ void game_update(GameState *gs, Input *input, GameClock *clock) {
 
             /* Update particles */
             particle_update(&gs->particles, dt);
+
+            /* Update camera shake decay */
+            if (gs->camera.shake_timer > 0.0f)
+                gs->camera.shake_timer -= dt;
+
+            /* Update barrage cooldown */
+            if (gs->barrage.cooldown > 0.0f)
+                gs->barrage.cooldown -= dt;
+
+            /* Barrage strike sequence — drop shells at staggered intervals */
+            if (gs->barrage.active) {
+                gs->barrage.strike_timer += dt;
+                int expected_shells = (int)(gs->barrage.strike_timer / BARRAGE_SHELL_DELAY);
+                if (expected_shells > BARRAGE_SHELLS) expected_shells = BARRAGE_SHELLS;
+
+                while (gs->barrage.shells_dropped < expected_shells) {
+                    /* Random offset within scatter radius */
+                    float angle = (float)(gs->barrage.shells_dropped * 137.5f * M_PI / 180.0f);
+                    float dist = BARRAGE_RADIUS * 0.3f +
+                                 BARRAGE_RADIUS * 0.7f * ((float)(gs->barrage.shells_dropped + 1) / BARRAGE_SHELLS);
+                    Vec2 impact = vec2(
+                        gs->barrage.target.x + cosf(angle) * dist,
+                        gs->barrage.target.y + sinf(angle) * dist
+                    );
+
+                    /* Damage enemies in splash radius */
+                    for (int j = 0; j < gs->enemies.count; j++) {
+                        Enemy *e = &gs->enemies.enemies[j];
+                        float d = vec2_distance(impact, e->position);
+                        if (d <= BARRAGE_SPLASH) {
+                            float falloff = 1.0f - (d / BARRAGE_SPLASH) * 0.5f;
+                            bool died = enemy_take_damage(e, BARRAGE_DAMAGE * falloff, DAMAGE_HEAVY_EXPLOSIVE);
+                            if (died) {
+                                economy_earn(&gs->economy, e->reward);
+                                gs->economy.total_kills++;
+                            }
+                        }
+                    }
+
+                    /* Visual + audio effects */
+                    particle_spawn_explosion(&gs->particles, impact, 1.0f);
+                    particle_spawn_smoke(&gs->particles, impact, 10);
+                    audio_play_at(gs->audio, SFX_EXPLOSION_LARGE,
+                        impact, listener_pos(gs));
+                    camera_shake(&gs->camera, 4.0f, 0.4f);
+
+                    gs->barrage.shells_dropped++;
+                }
+
+                /* Strike complete? */
+                if (gs->barrage.shells_dropped >= BARRAGE_SHELLS) {
+                    gs->barrage.active = false;
+                    gs->barrage.cooldown = gs->barrage.cooldown_max;
+                    LOG_INFO("Barrage complete, cooldown %.0fs", gs->barrage.cooldown_max);
+                }
+            }
 
             /* Check wave complete (spawning done + all enemies dead) */
             if (wave_is_complete(&gs->waves, &gs->enemies) &&
@@ -603,6 +698,66 @@ void game_render(GameState *gs, UIContext *ui) {
                 gs->batch.vertices[base + 3].position = vec3(x1 - nx, 0.005f, z1 - nz);
                 gs->batch.vertices[base + 3].uv = vec2(gs->atlas.white.u0, gs->atlas.white.v1);
                 gs->batch.vertices[base + 3].color = ring_col;
+                gs->batch.quad_count++;
+            }
+        }
+    }
+
+    /* Barrage targeting circle (red, pulsing) */
+    if (gs->barrage.targeting) {
+        Vec3 world = camera_screen_to_world(&gs->camera,
+            (float)gs->camera.viewport_width / 2.0f + ((float)gs->camera.viewport_width / 2.0f - (float)gs->camera.viewport_width / 2.0f),
+            0.0f);
+        /* Use mouse position */
+        Vec3 mw = camera_screen_to_world(&gs->camera,
+            (float)(gs->hover_tile.x >= 0 ? gs->hover_tile.x : 0),
+            (float)(gs->hover_tile.y >= 0 ? gs->hover_tile.y : 0));
+        /* Actually, just use the mouse -> world position directly */
+        float cx_b = (float)gs->hover_tile.x + 0.5f;
+        float cz_b = (float)gs->hover_tile.y + 0.5f;
+        if (gs->hover_tile.x >= 0 && gs->hover_tile.y >= 0) {
+            float radius = BARRAGE_SPLASH;
+            int seg = 48;
+            float step_b = 2.0f * 3.14159265f / (float)seg;
+            float thickness = 0.04f;
+            float pulse = 0.5f + 0.5f * sinf(gs->fps > 0 ? (float)glfwGetTime() * 6.0f : 0.0f);
+            Vec4 ring_col_b = vec4(1.0f, 0.25f, 0.15f, 0.5f + 0.3f * pulse);
+            for (int s = 0; s < seg; s++) {
+                float a0 = (float)s * step_b;
+                float a1 = (float)(s + 1) * step_b;
+                float x0 = cx_b + cosf(a0) * radius;
+                float z0 = cz_b + sinf(a0) * radius;
+                float x1 = cx_b + cosf(a1) * radius;
+                float z1 = cz_b + sinf(a1) * radius;
+                float dx_b = x1 - x0, dz_b = z1 - z0;
+                float len = sqrtf(dx_b * dx_b + dz_b * dz_b);
+                if (len < 0.001f) continue;
+                float nx = -dz_b / len * thickness * 0.5f;
+                float nz =  dx_b / len * thickness * 0.5f;
+                int base = gs->batch.quad_count * 4;
+                if (gs->batch.quad_count >= SPRITE_BATCH_MAX_QUADS) {
+                    sprite_batch_end(&gs->batch);
+                    sprite_batch_begin(&gs->batch, &gs->camera.view_projection);
+                }
+                uint32_t tex_id = gs->atlas.white.texture->id;
+                if (gs->batch.current_texture != 0 && gs->batch.current_texture != tex_id) {
+                    sprite_batch_end(&gs->batch);
+                    sprite_batch_begin(&gs->batch, &gs->camera.view_projection);
+                }
+                gs->batch.current_texture = tex_id;
+                base = gs->batch.quad_count * 4;
+                gs->batch.vertices[base + 0].position = vec3(x0 - nx, 0.01f, z0 - nz);
+                gs->batch.vertices[base + 0].uv = vec2(gs->atlas.white.u0, gs->atlas.white.v0);
+                gs->batch.vertices[base + 0].color = ring_col_b;
+                gs->batch.vertices[base + 1].position = vec3(x0 + nx, 0.01f, z0 + nz);
+                gs->batch.vertices[base + 1].uv = vec2(gs->atlas.white.u1, gs->atlas.white.v0);
+                gs->batch.vertices[base + 1].color = ring_col_b;
+                gs->batch.vertices[base + 2].position = vec3(x1 + nx, 0.01f, z1 + nz);
+                gs->batch.vertices[base + 2].uv = vec2(gs->atlas.white.u1, gs->atlas.white.v1);
+                gs->batch.vertices[base + 2].color = ring_col_b;
+                gs->batch.vertices[base + 3].position = vec3(x1 - nx, 0.01f, z1 - nz);
+                gs->batch.vertices[base + 3].uv = vec2(gs->atlas.white.u0, gs->atlas.white.v1);
+                gs->batch.vertices[base + 3].color = ring_col_b;
                 gs->batch.quad_count++;
             }
         }
@@ -998,6 +1153,62 @@ void game_render(GameState *gs, UIContext *ui) {
             snprintf(key, sizeof(key), "%d", i + 1);
             ui_label(ui, bx + 2.0f, by + btn_h - 10.0f, key,
                      vec4(0.40f, 0.40f, 0.40f, 1.0f), 1.0f);
+        }
+
+        /* Barrage button — right of tower buttons */
+        {
+            float bx = start_x + (float)TOWER_TYPE_COUNT * (btn_w + spacing) + 12.0f;
+            float by = bar_y + 3.0f;
+            float bbtn_w = 60.0f;
+            bool ready = (gs->barrage.cooldown <= 0.0f && !gs->barrage.active);
+            bool is_targeting = gs->barrage.targeting;
+
+            /* Button border when targeting */
+            if (is_targeting) {
+                ui_draw_rect(ui, bx - 2, by - 2, bbtn_w + 4, btn_h + 4,
+                             vec4(1.0f, 0.3f, 0.2f, 1.0f));
+            }
+
+            Vec4 bbg = ready ? vec4(0.35f, 0.15f, 0.10f, 1.0f)
+                             : vec4(0.15f, 0.12f, 0.10f, 1.0f);
+            if (is_targeting)
+                bbg = vec4(0.50f, 0.20f, 0.15f, 1.0f);
+            ui_draw_rect(ui, bx, by, bbtn_w, btn_h, bbg);
+
+            /* Label */
+            Vec4 label_col = ready ? vec4(1.0f, 0.7f, 0.3f, 1.0f)
+                                   : vec4(0.45f, 0.35f, 0.30f, 1.0f);
+            if (is_targeting)
+                label_col = vec4(1.0f, 0.4f, 0.3f, 1.0f);
+            float lbl_w = 5.0f * 6.0f * 1.5f; /* "BARR" */
+            ui_label(ui, bx + (bbtn_w - lbl_w) / 2.0f, by + 6.0f,
+                     "BARR", label_col, 1.5f);
+
+            /* Cooldown or "READY" or "B" hotkey */
+            char cd_str[16];
+            if (gs->barrage.active)
+                snprintf(cd_str, sizeof(cd_str), "FIRE!");
+            else if (ready)
+                snprintf(cd_str, sizeof(cd_str), "READY");
+            else
+                snprintf(cd_str, sizeof(cd_str), "%.0fs", gs->barrage.cooldown + 0.9f);
+            float cw2 = (float)strlen(cd_str) * 6.0f * 1.5f;
+            ui_label(ui, bx + (bbtn_w - cw2) / 2.0f, by + 24.0f,
+                     cd_str, label_col, 1.5f);
+
+            /* Hotkey */
+            ui_label(ui, bx + 2.0f, by + btn_h - 10.0f, "B",
+                     vec4(0.40f, 0.40f, 0.40f, 1.0f), 1.0f);
+
+            /* Click handler */
+            bool bhovered = (ui->mouse_x >= bx && ui->mouse_x < bx + bbtn_w &&
+                             ui->mouse_y >= by && ui->mouse_y < by + btn_h);
+            if (ui->mouse_pressed && bhovered && ready && !is_targeting) {
+                gs->barrage.targeting = true;
+                gs->selected_tower = -1;
+                gs->selected_tower_index = -1;
+                audio_play(gs->audio, SFX_UI_CLICK);
+            }
         }
 
         /* Tooltip for hovered tower */

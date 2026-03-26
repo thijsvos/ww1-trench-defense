@@ -17,12 +17,16 @@ typedef struct Camera {
     Vec3 right;        /* camera right vector in world space (for billboards) */
     Vec3 up_dir;       /* camera up vector in world space (for billboards) */
     int viewport_width, viewport_height;
+    /* Screen shake */
+    float shake_intensity; /* current magnitude, decays over time */
+    float shake_timer;     /* remaining shake time in seconds */
 } Camera;
 
 void camera_init(Camera *cam, int viewport_w, int viewport_h);
 void camera_update(Camera *cam);
 void camera_pan(Camera *cam, float dx, float dz);
 void camera_set_zoom(Camera *cam, float zoom);
+void camera_shake(Camera *cam, float intensity, float duration);
 Vec3 camera_screen_to_world(Camera *cam, float screen_x, float screen_y);
 
 #endif /* TD_CAMERA_H */

@@ -4,8 +4,15 @@
 #include "camera.h"
 #include "../math/vec.h"
 
+#include <stdlib.h>
+
 #define PIXELS_PER_UNIT 64.0f
 #define DEG_TO_RAD(d) ((d) * (float)M_PI / 180.0f)
+
+/* Simple deterministic random for shake offset */
+static float shake_rand(void) {
+    return ((float)rand() / (float)RAND_MAX) * 2.0f - 1.0f;
+}
 
 void camera_init(Camera *cam, int viewport_w, int viewport_h)
 {
@@ -38,9 +45,18 @@ void camera_update(Camera *cam)
     Vec3 offset = vec3(sy * cp, sp, cy * cp);
     Vec3 eye    = vec3_add(cam->position, vec3_scale(offset, cam->distance));
 
-    /* 2. Build view matrix. */
+    /* 2. Apply screen shake offset. */
+    Vec3 target = cam->position;
+    if (cam->shake_timer > 0.0f) {
+        float t = cam->shake_timer / 0.5f; /* normalized: decays over time */
+        if (t > 1.0f) t = 1.0f;
+        float mag = cam->shake_intensity * t * 0.02f;
+        target.x += shake_rand() * mag;
+        target.z += shake_rand() * mag;
+    }
+
     Vec3 up = vec3(0.0f, 1.0f, 0.0f);
-    cam->view = mat4_look_at(eye, cam->position, up);
+    cam->view = mat4_look_at(eye, target, up);
 
     /* 2b. Compute billboard basis vectors.
        Right = perpendicular to view direction on the XZ ground plane.
@@ -61,6 +77,15 @@ void camera_pan(Camera *cam, float dx, float dz)
 {
     cam->position.x += dx;
     cam->position.z += dz;
+}
+
+void camera_shake(Camera *cam, float intensity, float duration)
+{
+    /* Keep the stronger shake if one is already active */
+    if (intensity > cam->shake_intensity || cam->shake_timer <= 0.0f) {
+        cam->shake_intensity = intensity;
+        cam->shake_timer = duration;
+    }
 }
 
 void camera_set_zoom(Camera *cam, float zoom)
