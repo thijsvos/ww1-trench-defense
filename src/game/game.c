@@ -134,6 +134,13 @@ bool game_init(GameState *gs, const char *level_path, int screen_w, int screen_h
         gs->barrage.cooldown = 0.0f; /* ready immediately at start */
     }
 
+    /* Rally ability — cooldown scales with difficulty */
+    {
+        static const float DIFF_RALLY_CD[DIFF_COUNT] = { 35.0f, 45.0f, 55.0f, 70.0f };
+        gs->rally.cooldown_max = DIFF_RALLY_CD[diff];
+        gs->rally.cooldown = 0.0f;
+    }
+
     /* Debug draw */
     debug_draw_init(&gs->debug_draw, &gs->batch);
 
@@ -293,7 +300,7 @@ void game_update(GameState *gs, Input *input, GameClock *clock) {
 
         /* Barrage targeting: left-click to confirm, right-click to cancel */
         if (gs->barrage.targeting) {
-            if (input_mouse_pressed(input, GLFW_MOUSE_BUTTON_LEFT)) {
+            if (input_mouse_pressed(input, GLFW_MOUSE_BUTTON_LEFT) && !mouse_over_ui) {
                 Vec3 world = camera_screen_to_world(&gs->camera,
                     (float)input->mouse_x, (float)input->mouse_y);
                 gs->barrage.target = vec2(world.x, world.z);
@@ -306,6 +313,24 @@ void game_update(GameState *gs, Input *input, GameClock *clock) {
             }
             if (input_mouse_pressed(input, GLFW_MOUSE_BUTTON_RIGHT)) {
                 gs->barrage.targeting = false;
+            }
+        }
+
+        /* V: trench whistle rally — slow all enemies */
+        if (input_key_pressed(input, GLFW_KEY_V)) {
+            if (gs->rally.cooldown <= 0.0f && !gs->rally.active) {
+                /* Apply slow to every active enemy */
+                for (int i = 0; i < gs->enemies.count; i++) {
+                    enemy_apply_slow(&gs->enemies.enemies[i],
+                                     RALLY_SLOW_FACTOR, RALLY_SLOW_DURATION);
+                }
+                gs->rally.active = true;
+                gs->rally.effect_timer = 0.5f; /* brief visual flash */
+                gs->rally.cooldown = gs->rally.cooldown_max;
+                audio_play(gs->audio, SFX_WAVE_COMPLETE); /* short whistle blast */
+                camera_shake(&gs->camera, 1.0f, 0.15f);
+                LOG_INFO("Trench whistle rally! All enemies slowed to %.0f%% for %.0fs",
+                         RALLY_SLOW_FACTOR * 100.0f, RALLY_SLOW_DURATION);
             }
         }
     }
@@ -475,9 +500,16 @@ void game_update(GameState *gs, Input *input, GameClock *clock) {
             if (gs->camera.shake_timer > 0.0f)
                 gs->camera.shake_timer -= dt;
 
-            /* Update barrage cooldown */
+            /* Update ability cooldowns */
             if (gs->barrage.cooldown > 0.0f)
                 gs->barrage.cooldown -= dt;
+            if (gs->rally.cooldown > 0.0f)
+                gs->rally.cooldown -= dt;
+            if (gs->rally.active && gs->rally.effect_timer > 0.0f) {
+                gs->rally.effect_timer -= dt;
+                if (gs->rally.effect_timer <= 0.0f)
+                    gs->rally.active = false;
+            }
 
             /* Barrage strike sequence — drop shells at staggered intervals */
             if (gs->barrage.active) {
@@ -1203,11 +1235,72 @@ void game_render(GameState *gs, UIContext *ui) {
             /* Click handler */
             bool bhovered = (ui->mouse_x >= bx && ui->mouse_x < bx + bbtn_w &&
                              ui->mouse_y >= by && ui->mouse_y < by + btn_h);
-            if (ui->mouse_pressed && bhovered && ready && !is_targeting) {
-                gs->barrage.targeting = true;
-                gs->selected_tower = -1;
-                gs->selected_tower_index = -1;
+            if (ui->mouse_pressed && bhovered) {
+                if (is_targeting) {
+                    /* Cancel targeting */
+                    gs->barrage.targeting = false;
+                } else if (ready) {
+                    /* Start targeting */
+                    gs->barrage.targeting = true;
+                    gs->selected_tower = -1;
+                    gs->selected_tower_index = -1;
+                }
                 audio_play(gs->audio, SFX_UI_CLICK);
+            }
+        }
+
+        /* Rally button — right of barrage button */
+        {
+            float rbx = start_x + (float)TOWER_TYPE_COUNT * (btn_w + spacing) + 12.0f + 60.0f + 6.0f;
+            float rby = bar_y + 3.0f;
+            float rbtn_w = 60.0f;
+            bool rready = (gs->rally.cooldown <= 0.0f && !gs->rally.active);
+
+            /* Flash border when rally is active */
+            if (gs->rally.active) {
+                ui_draw_rect(ui, rbx - 2, rby - 2, rbtn_w + 4, btn_h + 4,
+                             vec4(0.3f, 0.6f, 1.0f, 0.8f));
+            }
+
+            Vec4 rbg = rready ? vec4(0.15f, 0.25f, 0.40f, 1.0f)
+                              : vec4(0.12f, 0.14f, 0.18f, 1.0f);
+            if (gs->rally.active)
+                rbg = vec4(0.20f, 0.35f, 0.55f, 1.0f);
+            ui_draw_rect(ui, rbx, rby, rbtn_w, btn_h, rbg);
+
+            Vec4 rlabel_col = rready ? vec4(0.5f, 0.8f, 1.0f, 1.0f)
+                                     : vec4(0.35f, 0.40f, 0.50f, 1.0f);
+            if (gs->rally.active)
+                rlabel_col = vec4(0.6f, 0.9f, 1.0f, 1.0f);
+            float rlbl_w = 5.0f * 6.0f * 1.5f;
+            ui_label(ui, rbx + (rbtn_w - rlbl_w) / 2.0f, rby + 6.0f,
+                     "RALLY", rlabel_col, 1.5f);
+
+            char rcd_str[16];
+            if (gs->rally.active)
+                snprintf(rcd_str, sizeof(rcd_str), "SLOW!");
+            else if (rready)
+                snprintf(rcd_str, sizeof(rcd_str), "READY");
+            else
+                snprintf(rcd_str, sizeof(rcd_str), "%.0fs", gs->rally.cooldown + 0.9f);
+            float rcw = (float)strlen(rcd_str) * 6.0f * 1.5f;
+            ui_label(ui, rbx + (rbtn_w - rcw) / 2.0f, rby + 24.0f,
+                     rcd_str, rlabel_col, 1.5f);
+
+            ui_label(ui, rbx + 2.0f, rby + btn_h - 10.0f, "V",
+                     vec4(0.40f, 0.40f, 0.40f, 1.0f), 1.0f);
+
+            bool rhovered = (ui->mouse_x >= rbx && ui->mouse_x < rbx + rbtn_w &&
+                             ui->mouse_y >= rby && ui->mouse_y < rby + btn_h);
+            if (ui->mouse_pressed && rhovered && rready) {
+                for (int i = 0; i < gs->enemies.count; i++)
+                    enemy_apply_slow(&gs->enemies.enemies[i],
+                                     RALLY_SLOW_FACTOR, RALLY_SLOW_DURATION);
+                gs->rally.active = true;
+                gs->rally.effect_timer = 0.5f;
+                gs->rally.cooldown = gs->rally.cooldown_max;
+                audio_play(gs->audio, SFX_WAVE_COMPLETE);
+                camera_shake(&gs->camera, 1.0f, 0.15f);
             }
         }
 
