@@ -76,6 +76,7 @@ cmake --build build --config Release
 | **Tab** | Toggle auto-wave |
 | **F** | Cycle speed (1x/2x/5x) |
 | **B** | Call artillery barrage (click to target) |
+| **V** | Trench whistle rally (slows all enemies) |
 | **Escape** | Toggle pause menu |
 | **F2** | Debug overlay |
 

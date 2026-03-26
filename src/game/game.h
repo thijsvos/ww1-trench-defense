@@ -46,6 +46,18 @@ typedef struct Barrage {
     int   shells_dropped;   /* how many shells have landed so far */
 } Barrage;
 
+/* Trench whistle rally — slows all enemies on map */
+#define RALLY_COOLDOWN_BASE     45.0f
+#define RALLY_SLOW_FACTOR       0.35f   /* enemies move at 35% speed */
+#define RALLY_SLOW_DURATION     4.0f    /* seconds */
+
+typedef struct Rally {
+    float cooldown;         /* seconds remaining until ready */
+    float cooldown_max;     /* total cooldown for current difficulty */
+    bool  active;           /* visual/audio feedback in progress */
+    float effect_timer;     /* remaining time of visual flash */
+} Rally;
+
 typedef struct GameState {
     Map map;
     PathSet paths;
@@ -61,6 +73,7 @@ typedef struct GameState {
     GameAtlas atlas;
     LevelDef level_def;
     Barrage barrage;
+    Rally rally;
 
     TowerType selected_tower;
     IVec2 hover_tile;
