@@ -6,6 +6,14 @@
 #include <string.h>
 #include <GLFW/glfw3.h>
 
+static const AmbientID level_ambient[MAX_LEVELS] = {
+    AMBIENT_BATTLEFIELD,      /* Level 1: No Man's Land */
+    AMBIENT_GALLIPOLI,        /* Level 2: Gallipoli Beach */
+    AMBIENT_VERDUN,           /* Level 3: Verdun Meatgrinder */
+    AMBIENT_BRUSILOV,         /* Level 4: Brusilov's Breakthrough */
+    AMBIENT_KAISERSCHLACHT,   /* Level 5: The Kaiserschlacht */
+};
+
 static void play_enter(void *ctx) {
     AppContext *app = (AppContext *)ctx;
     if (!app->game_initialized) {
@@ -16,7 +24,10 @@ static void play_enter(void *ctx) {
         }
         app->game.audio = &app->audio;
         app->game_initialized = true;
-        audio_set_ambient(&app->audio, AMBIENT_BATTLEFIELD);
+        AmbientID amb = AMBIENT_BATTLEFIELD;
+        if (app->selected_level >= 0 && app->selected_level < MAX_LEVELS)
+            amb = level_ambient[app->selected_level];
+        audio_set_ambient(&app->audio, amb);
         LOG_INFO("Play state entered: %s", app->level_path);
     } else {
         app->needs_clock_reset = true;
