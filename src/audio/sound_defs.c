@@ -342,6 +342,76 @@ static const AmbientDef ambient_defs[AMBIENT_COUNT] = {
         .loop_seconds = 5.0f,
         .crossfade    = 0.6f,
     },
+
+    /* AMBIENT_GALLIPOLI — airy coastal rumble, Gallipoli beach landing */
+    [AMBIENT_GALLIPOLI] = {
+        .base = {
+            .base_freq     = 30.0f,   /* slightly less deep than battlefield */
+            .freq_vibrato  = 0.15f,   /* slow drift, irregular surf/wind */
+            .vibrato_depth = 5.0f,
+            .wave_sine     = 0.45f,   /* less dominant sine body */
+            .wave_noise    = 0.35f,   /* more texture, wind across the beach */
+            .wave_triangle = 0.10f,
+            .lpf_cutoff    = 120.0f,  /* opens up for airy quality */
+            .hpf_cutoff    = 12.0f,
+            .volume        = 0.50f,   /* slightly quieter, less oppressive */
+            .sustain       = 6.0f,
+        },
+        .loop_seconds = 6.0f,
+        .crossfade    = 0.8f,
+    },
+
+    /* AMBIENT_VERDUN — heavy oppressive grinding bass, Verdun meatgrinder */
+    [AMBIENT_VERDUN] = {
+        .base = {
+            .base_freq     = 20.0f,   /* deeper, heavier thudding */
+            .wave_sine     = 0.70f,   /* more tonal weight, grinding bass */
+            .wave_noise    = 0.20f,   /* less texture, pure oppressive tone */
+            .wave_triangle = 0.10f,
+            .lpf_cutoff    = 60.0f,   /* tighter filter, suffocating and dense */
+            .hpf_cutoff    = 10.0f,   /* allows more sub-bass through */
+            .volume        = 0.60f,   /* louder, more present */
+            .sustain       = 6.0f,
+        },
+        .loop_seconds = 6.0f,
+        .crossfade    = 0.8f,
+    },
+
+    /* AMBIENT_BRUSILOV — open windswept plains, Eastern Front steppes */
+    [AMBIENT_BRUSILOV] = {
+        .base = {
+            .base_freq     = 40.0f,   /* higher, more wind than artillery */
+            .freq_vibrato  = 0.25f,   /* gusting wind across open terrain */
+            .vibrato_depth = 10.0f,
+            .wave_sine     = 0.40f,   /* balanced with noise */
+            .wave_noise    = 0.40f,   /* wind texture dominates equally */
+            .wave_triangle = 0.10f,
+            .lpf_cutoff    = 180.0f,  /* open, letting wind through */
+            .hpf_cutoff    = 18.0f,   /* reduces deep rumble */
+            .volume        = 0.45f,   /* quieter, more atmospheric */
+            .sustain       = 7.0f,
+        },
+        .loop_seconds = 7.0f,
+        .crossfade    = 0.9f,
+    },
+
+    /* AMBIENT_KAISERSCHLACHT — full climactic battlefield, the final push */
+    [AMBIENT_KAISERSCHLACHT] = {
+        .base = {
+            .base_freq     = 25.0f,   /* same deep foundation as baseline */
+            .freq_vibrato  = 0.10f,   /* subtle movement, constant bombardment */
+            .vibrato_depth = 4.0f,
+            .wave_sine     = 0.55f,
+            .wave_noise    = 0.30f,   /* more noise for chaotic texture */
+            .wave_triangle = 0.15f,
+            .lpf_cutoff    = 100.0f,  /* opens slightly for richer sound */
+            .hpf_cutoff    = 10.0f,   /* more sub-bass */
+            .volume        = 0.62f,   /* loudest ambient, climactic */
+            .sustain       = 6.0f,
+        },
+        .loop_seconds = 6.0f,
+        .crossfade    = 0.8f,
+    },
 };
 
 /* ── Per-sound policies ────────────────────────────────────────── */
